@@ -81,7 +81,7 @@ class IPV4:
 
 	def __gt__ (self, IP2): # this > other
 		# Check if compared to another IP
-		if type(IP2) != IP:
+		if type(IP2) != IPV4:
 			raise TypeError("IP's can only be compared with another IP.")
 		this_ip = self.Current_IP
 		that_ip = IP2.Current_IP
@@ -104,7 +104,7 @@ class IPV4:
 
 	def __ge__ (self, IP2): # this >= other
 		# Check if compared to another IP
-		if type(IP2) != IP:
+		if type(IP2) != IPV4:
 			raise TypeError("IP's can only be compared with another IP.")
 		this_ip = self.Current_IP
 		that_ip = IP2.Current_IP
@@ -127,7 +127,7 @@ class IPV4:
 
 	def __le__ (self, IP2): # this <= other
 		# Check if compared to another IP
-		if type(IP2) != IP:
+		if type(IP2) != IPV4:
 			raise TypeError("IP's can only be compared with another IP.")
 		this_ip = self.Current_IP
 		that_ip = IP2.Current_IP
@@ -150,7 +150,7 @@ class IPV4:
 
 	def __lt__ (self, IP2): # this < other
 		# Check if compared to another IP
-		if type(IP2) != IP:
+		if type(IP2) != IPV4:
 			raise TypeError("IP's can only be compared with another IP.")
 		this_ip = self.Current_IP
 		that_ip = IP2.Current_IP
@@ -173,7 +173,7 @@ class IPV4:
 
 	def __eq__ (self, IP2): # this == other
 		# Check if compared to another IP
-		if type(IP2) != IP:
+		if type(IP2) != IPV4:
 			raise TypeError("IP's can only be compared with another IP.")
 		this_ip = self.Current_IP
 		that_ip = IP2.Current_IP
