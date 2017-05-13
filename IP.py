@@ -34,6 +34,12 @@ class IPV4:
 		output.append(int(temp)) # Run one last time because there is no trailing ".
 		return output
 
+	def Get_As_String (self):
+		return self.Convert_ATS(self.Current_IP)
+
+	def Get_As_Array (self):
+		return self.Current_IP
+
 	def Verify_IP (self):
 		if self.Current_IP == str:
 			test = self.Convert_To_Array(self.Current_IP)
