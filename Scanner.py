@@ -11,14 +11,27 @@ class Scan_Handler:
 		# Runtime Variables
 		self.Running = False
 
+	# To check whether something should occur based of the verbosity.
+	# Eg if something requires high verbosity, is the verbosity high 
+	def Verbosity_Verify (self, level):
+		if self.Verbose:
+			if self.Verbosity == "high":
+				return True
+			elif self.Verbosity == "medium":
+				if level in ["medium", "low"]:
+					return True
+			elif self.Verbosity == "low":
+				if level == "low":
+					return True
+		return False
+
 	# To determine whether some actions can be made or not
 	def Is_Running (self):
 		if self.Running:
 			return True
 		return False
 
-
-	# Update Variables Fucntions
+	# Update Variables Functions
 
 	def Add_Port (self, port):
 		if self.Is_Running():
