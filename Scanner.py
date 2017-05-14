@@ -35,6 +35,10 @@ class Scan_Handler:
 					return True
 		return False
 
+	def Print_If_Verbose (self, level, text):
+		if self.Verbose_Verify(level):
+			print(text)
+
 	# To determine whether some actions can be made or not
 	def Is_Running (self):
 		if self.Running:
@@ -45,36 +49,36 @@ class Scan_Handler:
 
 	def Add_Port (self, port):
 		if self.Is_Running():
-			print("[!] Ports cannot be added whilst running!")
+			self.Print_If_Verbose("low", "[!] Ports cannot be added whilst running!")
 		else:
 			if type(port) == int:
 				if port > 0 and port <= 65535:
 					self.Ports.append(port)
-					print("[+] %s has been added to the list of ports!" % port)
+					self.Print_If_Verbose("low", "[+] %s has been added to the list of ports!" % port)
 					return True
 				else:
-					print("[!] Port must be a valid (0 - 65535) integer!")
+					self.Print_If_Verbose("low", "[!] Port must be a valid (0 - 65535) integer!")
 			else:
-				print("[!] Port must be a valid (0 - 65535) integer!")
+				self.Print_If_Verbose("low", "[!] Port must be a valid (0 - 65535) integer!")
 		return False
 
 	def Remove_Port (self, port):
 		if self.Is_Running():
-			print("[!] Ports cannot be removed whilst running!")
+			self.Print_If_Verbose("low", "[!] Ports cannot be removed whilst running!")
 		else:
 			# No need for checking the validity of the value, just check if its in the list
 			# note: it shouldnt be in the list if it isn't valid anyway
 			if port in self.Ports:
 				self.Ports.remove(port)
-				print("[-] %s has been removed from the list of ports!" % port)
+				self.Print_If_Verbose("low", "[-] %s has been removed from the list of ports!" % port)
 				return True
 			else:
-				print("[!] The port wasn't in the list anyway.")
+				self.Print_If_Verbose("low", "[!] The port wasn't in the list anyway.")
 		return False
 	
 	def Set_Ports (self, ports):
 		if self.Is_Running():
-			print("[!] Ports cannot be changed whilst running!")
+			self.Print_If_Verbose("low", "[!] Ports cannot be changed whilst running!")
 			return False
 		else:
 			# Verify whether it is a list of valid integers or not
@@ -82,31 +86,31 @@ class Scan_Handler:
 				for port in ports:
 					if type(port) == int:
 						if not (port > 0 and port <= 65535):
-							print("[!] Ports must be a list of valid (0 - 65535) integers!")
+							self.Print_If_Verbose("low", "[!] Ports must be a list of valid (0 - 65535) integers!")
 							return False
 					else:
-						print("[!] Ports must be a list of valid (0 - 65535) integers!")
+						self.Print_If_Verbose("low", "[!] Ports must be a list of valid (0 - 65535) integers!")
 						return False
 				self.Ports = ports
-				print("[+] Ports have been updated!")
+				self.Print_If_Verbose("low", "[+] Ports have been updated!")
 				return True
 			else:
-				print("[!] Ports must be a list of valid (0 - 65535) integers!")
+				self.Print_If_Verbose("low", "[!] Ports must be a list of valid (0 - 65535) integers!")
 				return False
 
 	def Set_Threads (self, threads):
 		if self.Is_Running():
-			print("[!] Threads cannot be changed whilst running!")
+			self.Print_If_Verbose("low", "[!] Threads cannot be changed whilst running!")
 		else:
 			if type(threads) == int:
 				if threads > 0:
 					self.Threads_Size = threads
-					print("[+] Threads have been updated!")
+					self.Print_If_Verbose("low", "[+] Threads have been updated!")
 					return True
 				else:
-					print("[!] There must be at least 1 thread!")
+					self.Print_If_Verbose("low", "[!] There must be at least 1 thread!")
 			else:
-				print("[!] Threads must be an integer!")
+				self.Print_If_Verbose("low", "[!] Threads must be an integer!")
 		return False
 
 	# Scanning
@@ -117,6 +121,8 @@ class Scan_Handler:
 			_from = IPV4(ip=_from)
 		if type(_to) != IPV4:
 			_to = IPV4(ip=_to)
+
+		self.Print_If_Verbose("low", "[+] Scan Started")
 
 		self.Running = True
 		self.que = Queue() # Reset the Queue
@@ -129,6 +135,7 @@ class Scan_Handler:
 			else:
 				_from.Next_IP()
 
+		self.Print_If_Verbose("high", "[+] Creating Threads")
 
 		self.Threads = {} # Reset the Threads
 		for thread in range(self.Thread_Size):
@@ -142,7 +149,7 @@ class Scan_Handler:
 		for thread in self.Threads:
 			self.Threads[thread].thread.join()
 
-			self.Running = False
+		self.Running = False
 
 class Scanner_Thread:
 	def __init__ (self, controller):
@@ -165,6 +172,7 @@ class Scanner_Thread:
 		self.thread.start()
 
 	def Run_Thread(self):
+		self.controller.Print_If_Verbose("high", "[+] Thread Created")
 		while True:
 			open_ports = []
 			server = self.controller.que.get()
@@ -177,7 +185,11 @@ class Scanner_Thread:
 			if len(open_ports) > 0:
 				self.controller.Open_Addresses[server] = open_ports
 
+
+			self.controller.Print_If_Verbose("medium", "[+] ports %s are open on %s" % (open_ports, server))
+
 			self.controller.que.task_done()
+		self.controller.Print_If_Verbose("high", "[+] Thread Destroyed")
 
 if __name__ == "__main__":
 	Scanner = Scan_Handler()
