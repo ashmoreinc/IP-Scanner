@@ -2,26 +2,44 @@ from IP import *
 from queue import Queue
 from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread, Lock
+from time import time
+from os import path, makedirs
 
 printLock = Lock()
 
 class Scan_Handler:
-	def __init__ (self, ports=[80], threads=10, verbose=False, verbosity="low"):
+	def __init__ (self, ports=[80], threads=10, verbose=False, verbosity="low", write_results=False):
 		# Verbosity Settings
-		self.Verbose 	= verbose
-		self.Verbosity 	= verbosity # Can be low, Medium, High
+		self.Verbose 		= verbose
+		self.Verbosity 		= verbosity 	# Can be low, Medium, High
+		self.Do_Write		= write_results
 
 		# Scan Options
-		self.Ports = ports
-		self.Thread_Size = threads
+		self.Ports 			= ports
+		self.Thread_Size 	= threads
 
 		# Runtime Variables
-		self.Running = False
-		self.que = Queue() # This will be where all the IP's are pulled from and stored to before running
-		self.Threads = {} # This will be a list of threads open {"thread num":Thread}
+		self.Running 		= False
+		self.que 			= Queue() 		# This will be where all the IP's are pulled from and stored to before running
+		self.Threads 		= {} 			# This will be a list of threads open {"thread num":Thread}
 		
 		# Results
-		self.Open_Addresses = {} # Dictionary {"ip":[ports]}
+		self.Open_Addresses = {} 			# Dictionary {"ip":[ports]}
+
+	# Output the results if set to do so
+	def Write_Results (self):
+		if self.Do_Write:
+			if not path.exists("Results"): # Check if the directory Results already exists, create one if not
+				makedirs("Results")
+
+			filename = "Results\\" + str(time()) + ".txt" # Set the filename to be the time (seconds) .txt, assures a unique name each time
+			with open(filename, "a") as output:
+				for server in self.Open_Addresses: # Loops through all the results
+					ports = ""
+					for port in self.Open_Addresses[server]: # Loops though all the ports format them into a string
+						ports += str(port) + ","
+					ports = ports[:-1] # Remove the trailing comma
+					output.write(str(server) + " : " + ports) # Write
 
 	# To check whether something should occur based of the verbosity.
 	# Eg if something requires high verbosity, is the verbosity high 
@@ -152,6 +170,7 @@ class Scan_Handler:
 		for thread in self.Threads:
 			self.Threads[thread].thread.join()
 
+		self.Write_Results()
 		self.Running = False
 
 class Scanner_Thread:
@@ -187,12 +206,12 @@ class Scanner_Thread:
 
 			if len(open_ports) > 0:
 				self.controller.Open_Addresses[server] = open_ports
-				self.controller.Print_If_Verbose("medium", "[+] ports %s are open on %s" % (open_ports, server))
+				self.controller.Print_If_Verbose("low", "[+] ports %s are open on %s" % (open_ports, server))
 
 			self.controller.que.task_done()
 		self.controller.Print_If_Verbose("high", "[+] Thread Destroyed")
 
 if __name__ == "__main__":
-	Scanner = Scan_Handler(verbose=True, verbosity="high")
+	Scanner = Scan_Handler(verbose=True, verbosity="high", write_results=True)
 	Scanner.Start_Scanner("192.168.0.1", "192.168.0.20")
 	print(Scanner.Open_Addresses)
