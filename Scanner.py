@@ -1,7 +1,9 @@
 from IP import *
 from queue import Queue
 from socket import socket, AF_INET, SOCK_STREAM
-from threading import Thread
+from threading import Thread, Lock
+
+printLock = Lock()
 
 class Scan_Handler:
 	def __init__ (self, ports=[80], threads=10, verbose=False, verbosity="low"):
@@ -36,8 +38,9 @@ class Scan_Handler:
 		return False
 
 	def Print_If_Verbose (self, level, text):
-		if self.Verbose_Verify(level):
-			print(text)
+		if self.Verbosity_Verify(level):
+			with printLock:
+				print(text)
 
 	# To determine whether some actions can be made or not
 	def Is_Running (self):
@@ -184,14 +187,12 @@ class Scanner_Thread:
 
 			if len(open_ports) > 0:
 				self.controller.Open_Addresses[server] = open_ports
-
-
-			self.controller.Print_If_Verbose("medium", "[+] ports %s are open on %s" % (open_ports, server))
+				self.controller.Print_If_Verbose("medium", "[+] ports %s are open on %s" % (open_ports, server))
 
 			self.controller.que.task_done()
 		self.controller.Print_If_Verbose("high", "[+] Thread Destroyed")
 
 if __name__ == "__main__":
-	Scanner = Scan_Handler()
+	Scanner = Scan_Handler(verbose=True, verbosity="high")
 	Scanner.Start_Scanner("192.168.0.1", "192.168.0.20")
 	print(Scanner.Open_Addresses)
