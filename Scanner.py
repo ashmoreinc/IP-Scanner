@@ -26,6 +26,17 @@ class Scan_Handler:
 		# Results
 		self.Open_Addresses = {} 			# Dictionary {"ip":[ports]}
 
+		# Results Output
+		self.New_Data = Queue()
+
+	def Get_Outputs_Realtime (self):
+		while True:
+			data = self.New_Data.get()
+			if data is None:
+				break
+			else:
+				yield data
+
 	# Output the results if set to do so
 	def Write_Results (self):
 		if self.Do_Write:
@@ -137,6 +148,12 @@ class Scan_Handler:
 	# Scanning
 
 	def Start_Scanner (self, _from, _to):
+		# Use this as a thread so that it can run while the user does what ever
+		thread = Thread(target=self.Start_Scanner_Thread, args=(_from, _to))
+		thread.daemon = True
+		thread.start()
+
+	def Start_Scanner_Thread (self, _from, _to):
 		# Check if the inputs are in the IP data type. Convert if not.
 		if type(_from) != IPV4:
 			_from = IPV4(ip=_from)
@@ -147,6 +164,7 @@ class Scan_Handler:
 
 		self.Running = True
 		self.que = Queue() # Reset the Queue
+		self.New_Data = Queue() # Reset the New_Data Queue
 
 		# Loops through all the addresses untill _from matches _to
 		while True:
@@ -169,6 +187,8 @@ class Scan_Handler:
 
 		for thread in self.Threads:
 			self.Threads[thread].thread.join()
+
+		self.New_Data.put(None)
 
 		self.Write_Results()
 		self.Running = False
@@ -206,12 +226,15 @@ class Scanner_Thread:
 
 			if len(open_ports) > 0:
 				self.controller.Open_Addresses[server] = open_ports
+				self.controller.New_Data.put([server, open_ports])
 				self.controller.Print_If_Verbose("low", "[+] ports %s are open on %s" % (open_ports, server))
 
 			self.controller.que.task_done()
 		self.controller.Print_If_Verbose("high", "[+] Thread Destroyed")
 
 if __name__ == "__main__":
-	Scanner = Scan_Handler(verbose=True, verbosity="high", write_results=True)
+	Scanner = Scan_Handler()
 	Scanner.Start_Scanner("192.168.0.1", "192.168.0.20")
-	print(Scanner.Open_Addresses)
+	for data in Scanner.Get_Outputs_Realtime():
+		print(data)
+	#print(Scanner.Open_Addresses)

@@ -83,6 +83,11 @@ class IPV4:
 		self.Current_IP = output
 		return True
 
+	# Data Operations
+
+	def __str__(self):
+		return self.Get_As_String()
+
 	# Expressional Operators below
 
 	def __gt__ (self, IP2): # this > other

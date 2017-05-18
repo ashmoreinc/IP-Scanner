@@ -8,9 +8,10 @@ Scanner.py: A module which holds an object in which will control all of the runn
 How to use:
 Create the Scan handler: 	Scanner = Scan_Handler(**kwargs)
 							**kwargs can be:
-									ports: 		Array of ports to scan, 
-									threads: 	threads to use
-									Verbose:	Do extra printing? True/False
-									Verbosity:	The level of verbosity ("low", "medium", "high")
+									ports: 			Array of ports to scan, 
+									threads: 		threads to use,
+									verbose:		Do extra printing? True/False,
+									verbosity:		The level of verbosity ("low", "medium", "high"),
+									write_results:	Output the results to a file (True/False)
 Start running the scanner:	Scanner.Start_Scanner(ip_from, ip_to)
 Output the result:			print(Scanner.Open_Addresses)
