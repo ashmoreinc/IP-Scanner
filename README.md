@@ -15,3 +15,5 @@ Create the Scan handler: 	Scanner = Scan_Handler(**kwargs)
 									write_results:	Output the results to a file (True/False)
 Start running the scanner:	Scanner.Start_Scanner(ip_from, ip_to)
 Output the result:			print(Scanner.Open_Addresses)
+or Output generator:		for data in Scanner.Get_Output_realtime():
+								# Data: [server, [ports]]

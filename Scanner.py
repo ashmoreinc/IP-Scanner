@@ -2,7 +2,7 @@ from IP import *
 from queue import Queue
 from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread, Lock
-from time import time
+from time import time, sleep
 from os import path, makedirs
 
 printLock = Lock()
@@ -20,6 +20,7 @@ class Scan_Handler:
 
 		# Runtime Variables
 		self.Running 		= False
+		self.Stop_Scanner 	= False
 		self.que 			= Queue() 		# This will be where all the IP's are pulled from and stored to before running
 		self.Threads 		= {} 			# This will be a list of threads open {"thread num":Thread}
 		
@@ -147,6 +148,19 @@ class Scan_Handler:
 
 	# Scanning
 
+	def Stop_Scanning (self):
+		self.Stop_Scanner = True
+		sleep(0.25) # Allow for those threads that may have just started a new round
+		while True:
+			try:
+				x = self.que.get(block=None, timeout=2)
+			except:
+				break
+			if x is None:
+				break
+			self.que.task_done()
+		self.Print_If_Verbose("medium", "[*] Scan has completely finished")
+
 	def Start_Scanner (self, _from, _to):
 		# Use this as a thread so that it can run while the user does what ever
 		thread = Thread(target=self.Start_Scanner_Thread, args=(_from, _to))
@@ -178,11 +192,12 @@ class Scan_Handler:
 
 		self.Threads = {} # Reset the Threads
 		for thread in range(self.Thread_Size):
-			self.Threads[thread] = Scanner_Thread(self)
+			self.Threads[thread] = Scanner_Thread(self, thread)
+			self.Threads[thread].daemon = True
 			self.Threads[thread].Start_Scanning()
 
 		self.que.join()
-		for _ in range(self.Thread_Size):
+		for _ in range(self.Thread_Size + 1):
 			self.que.put(None)
 
 		for thread in self.Threads:
@@ -192,11 +207,13 @@ class Scan_Handler:
 
 		self.Write_Results()
 		self.Running = False
+		self.Stop_Scanner = False
 
 class Scanner_Thread:
-	def __init__ (self, controller):
+	def __init__ (self, controller, num):
 		self.controller = controller # For reference
-		
+		self.Thread_Num = num
+
 		self.socket = socket(AF_INET, SOCK_STREAM) # For scanning
 
 		self.thread = None
@@ -220,9 +237,16 @@ class Scanner_Thread:
 			server = self.controller.que.get()
 			if server is None:
 				break
+			if self.controller.Stop_Scanner:
+				self.controller.que.task_done()
+				self.controller.Print_If_Verbose("high", "IM QUITING BITCH")
+				break
+			self.controller.Print_If_Verbose("high", "[+] Scanning on %s has started." % server)
 			for port in self.controller.Ports:
 				if self.Scan(server, port):
 					open_ports.append(port)
+
+			self.controller.Print_If_Verbose("high", "[+] Scanning on %s has stopped." % server)
 
 			if len(open_ports) > 0:
 				self.controller.Open_Addresses[server] = open_ports
@@ -233,8 +257,8 @@ class Scanner_Thread:
 		self.controller.Print_If_Verbose("high", "[+] Thread Destroyed")
 
 if __name__ == "__main__":
-	Scanner = Scan_Handler()
-	Scanner.Start_Scanner("192.168.0.1", "192.168.0.20")
-	for data in Scanner.Get_Outputs_Realtime():
-		print(data)
+	Scanner = Scan_Handler(verbose=False, verbosity="high", write_results=True)
+	Scanner.Start_Scanner("192.168.0.1", "192.168.0.200")
+	for i in Scanner.Get_Outputs_Realtime():
+		print(i)
 	#print(Scanner.Open_Addresses)
