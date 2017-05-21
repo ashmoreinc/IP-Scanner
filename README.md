@@ -1,6 +1,8 @@
 # IP-Scanner
 IP-Scanner in python. Adapted to work as a module or standalone.
 
+NOTE: Not yet tested in Linux. Tested in Windows 10 using pyhton 3.6, though I can't see why this wouldnt work in python 3.X.
+
 IP.py: A module which holds a new data type (IPV4) to store IPV4 addresses, allowing for comparisons, moving onto the next ip and verifying whether the IP that has been used/input is valid.
 
 Scanner.py: A module which holds an object in which will control all of the running of the Scanner.

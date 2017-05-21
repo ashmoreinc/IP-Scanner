@@ -9,5 +9,5 @@ def Background ():
 		print(str(data))
 
 bg		= Thread(target=Background)
-bg.daemon  	= True
+#bg.daemon  	= True
 bg.start()
