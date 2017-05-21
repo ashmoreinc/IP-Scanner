@@ -32,11 +32,19 @@ class Scan_Handler:
 
 	def Get_Outputs_Realtime (self):
 		while True:
-			data = self.New_Data.get()
+			try:
+				data = self.New_Data.get(timeout=5)
+			except:
+				if not self.Running:
+					break
+				continue
 			if data is None:
 				break
-			else:
-				yield data
+
+			yield data
+			self.New_Data.task_done()
+			
+			
 
 	# Output the results if set to do so
 	def Write_Results (self):
@@ -203,11 +211,14 @@ class Scan_Handler:
 		for thread in self.Threads:
 			self.Threads[thread].thread.join()
 
-		self.New_Data.put(None)
-
-		self.Write_Results()
 		self.Running = False
 		self.Stop_Scanner = False
+
+		self.New_Data.join()
+		self.New_Data.put(None)
+		
+		self.Write_Results()
+		
 
 class Scanner_Thread:
 	def __init__ (self, controller, num):
