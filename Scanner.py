@@ -4,17 +4,21 @@ from socket import socket, AF_INET, SOCK_STREAM
 from threading import Thread, Lock
 from time import time, sleep
 from os import path, makedirs
+from urllib.request import urlopen
+from urllib.error import *
+from bs4 import BeautifulSoup
 
 printLock = Lock()
 
 class Scan_Handler:
-	def __init__ (self, ports=[80], threads=10, verbose=False, verbosity="low", write_results=False):
+	def __init__ (self, ports=[80], threads=10, verbose=False, verbosity="low", write_results=False, scan_opts = ["web_title"]):
 		# Verbosity Settings
 		self.Verbose 		= verbose
 		self.Verbosity 		= verbosity 	# Can be low, Medium, High
 		self.Do_Write		= write_results
 
 		# Scan Options
+		self.Scan_Opts 		= scan_opts # This will be what we scan, eg web_title, ping (when implemented), etc
 		self.Ports 			= ports
 		self.Thread_Size 	= threads
 
@@ -25,7 +29,7 @@ class Scan_Handler:
 		self.Threads 		= {} 			# This will be a list of threads open {"thread num":Thread}
 		
 		# Results
-		self.Open_Addresses = {} 			# Dictionary {"ip":[ports]}
+		self.Results 		= {} 			# Dictionary {"ip":{Collected Data}}
 
 		# Results Output
 		self.New_Data = Queue()
@@ -54,12 +58,14 @@ class Scan_Handler:
 
 			filename = "Results\\" + str(time()) + ".txt" # Set the filename to be the time (seconds) .txt, assures a unique name each time
 			with open(filename, "a") as output:
-				for server in self.Open_Addresses: # Loops through all the results
-					ports = ""
-					for port in self.Open_Addresses[server]: # Loops though all the ports format them into a string
-						ports += str(port) + ","
-					ports = ports[:-1] # Remove the trailing comma
-					output.write(str(server) + " : " + ports) # Write
+				for server in self.Results: # Loops through all the results
+
+					output.write(str(server) + ":")
+
+					for key in self.Results[server]:
+						output.write("\t\t" + key + "  :  " + str(self.Results[server][key]))
+
+					
 
 	# To check whether something should occur based of the verbosity.
 	# Eg if something requires high verbosity, is the verbosity high 
@@ -227,7 +233,60 @@ class Scanner_Thread:
 
 		self.socket = socket(AF_INET, SOCK_STREAM) # For scanning
 
+		self.open_ports = []
 		self.thread = None
+
+	# Extra Scan Functions
+
+	def Web_Title (self, server):
+		# Check if the http port and https port is open on the server, attempt to get title for open addresses
+
+		if 443 in self.open_ports and 80 in self.open_ports:
+			try:
+				soup = BeautifulSoup(urlopen("http://" + str(server)), "html.parser")
+				t80  = soup.title.string
+			except HTTPError as err:
+				t80  = "HTTP Error - " + str(err.code)
+			except:
+				t80  = "None"
+
+			try:
+				soup = BeautifulSoup(urlopen("https://" + str(server)), "html.parser")
+				t443 = soup.string.title
+			except HTTPError as err:
+				t443  = "HTTP Error - " + str(err.code)
+			except:
+				t443  = "None"
+
+
+			if t80 == t443:
+				return t80
+			else:
+				return str(t80) + " / " + str(t443)
+		elif 80 in self.open_ports:
+			try:
+				soup = BeautifulSoup(urlopen("http://" + str(server)), "html.parser")
+				t80  = soup.title.string
+			except HTTPError as err:
+				t80  = "HTTP Error - " + str(err.code)
+			except:
+				t80  = "None"
+				
+			return str(t80)
+		elif 443 in self.open_ports:
+			try:
+				soup = BeautifulSoup(urlopen("https://" + str(server)), "html.parser")
+				t443 = soup.string.title
+			except HTTPError as err:
+				t443  = "HTTP Error - " + str(err.code)
+			except:
+				t443  = "None"
+
+			return str(t443)
+		else:
+			return "None"
+
+	# Main Scan functions
 
 	def Scan(self, server, port):
 		try:
@@ -244,7 +303,7 @@ class Scanner_Thread:
 	def Run_Thread(self):
 		self.controller.Print_If_Verbose("high", "[+] Thread Created")
 		while True:
-			open_ports = []
+			self.open_ports = []
 			server = self.controller.que.get()
 			if server is None:
 				break
@@ -252,24 +311,40 @@ class Scanner_Thread:
 				self.controller.que.task_done()
 				self.controller.Print_If_Verbose("high", "IM QUITING BITCH")
 				break
+
 			self.controller.Print_If_Verbose("high", "[+] Scanning on %s has started." % server)
+			
+			results  = {}
+
+			# Ports 
 			for port in self.controller.Ports:
 				if self.Scan(server, port):
-					open_ports.append(port)
+					self.open_ports.append(port)
+
+			results["ports"] = self.open_ports
+
+			self.controller.Print_If_Verbose("low", "[+] ports %s are open on %s" % (self.open_ports, server))
+
+			# Web_Title
+
+			if "web_title" in self.controller.Scan_Opts: # Do we scan the web title?
+				title = self.Web_Title(server)
+
+			results["web_title"] = title
 
 			self.controller.Print_If_Verbose("high", "[+] Scanning on %s has stopped." % server)
 
-			if len(open_ports) > 0:
-				self.controller.Open_Addresses[server] = open_ports
-				self.controller.New_Data.put([server, open_ports])
-				self.controller.Print_If_Verbose("low", "[+] ports %s are open on %s" % (open_ports, server))
+			self.controller.Results[server] = results
+
+			self.controller.New_Data.put([server, results])
 
 			self.controller.que.task_done()
 		self.controller.Print_If_Verbose("high", "[+] Thread Destroyed")
 
 if __name__ == "__main__":
-	Scanner = Scan_Handler(verbose=False, verbosity="high", write_results=True)
-	Scanner.Start_Scanner("192.168.0.1", "192.168.0.200")
+	Scanner = Scan_Handler(ports=[80, 443, 8000, 8080], threads=100, verbose=True, verbosity="high", write_results=True)
+	Scanner.Start_Scanner("80.4.150.1", "80.4.200.0")
 	for i in Scanner.Get_Outputs_Realtime():
-		print(i)
+		if str(i[1]["ports"]) != "[]" or i[1]["web_title"] != "None":
+			print(i)
 	#print(Scanner.Open_Addresses)
