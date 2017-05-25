@@ -1,17 +1,19 @@
 from IP import *
 from queue import Queue
-from socket import socket, AF_INET, SOCK_STREAM
+from socket import socket, AF_INET, SOCK_STREAM, getfqdn
 from threading import Thread, Lock
 from time import time, sleep
 from os import path, makedirs
 from urllib.request import urlopen
 from urllib.error import *
 from bs4 import BeautifulSoup
+import subprocess
+
 
 printLock = Lock()
 
 class Scan_Handler:
-	def __init__ (self, ports=[80], threads=10, verbose=False, verbosity="low", write_results=False, scan_opts = ["web_title"]):
+	def __init__ (self, ports=[80], threads=10, verbose=False, verbosity="low", write_results=False, scan_opts = ["ping", "web_title", "hostname"]):
 		# Verbosity Settings
 		self.Verbose 		= verbose
 		self.Verbosity 		= verbosity 	# Can be low, Medium, High
@@ -238,6 +240,70 @@ class Scanner_Thread:
 
 	# Extra Scan Functions
 
+	def Hostname (self, server):
+		try:
+			hn, x, x = getfqdn(server)
+		except:
+			hn = "None"
+
+		return hn
+
+	def ping_cmd (self, host):
+	    breaklim = 10
+	    proc = subprocess.Popen(["cmd", "/c", "ping", host, "-n", "3"],stdout=subprocess.PIPE, shell=True)
+	    nulllines = 0
+	    for line in iter(proc.stdout.readline,''):
+	        if nulllines == breaklim:
+	            break
+	        
+	        if line.decode() == "":
+	            nulllines += 1
+	        else:
+	            nulllines = 0
+	            line = line.decode().strip("\n")
+	            if "Maximum" in line and "Minimum" in line and "Average" in line:
+	                return line
+	    return False
+
+	def Ping_w (self, host):
+	    '''
+	    Use subrpocess to ping through the console,
+	    then parse the output to get the ping speed
+	    
+		_w means windows, linux version yet to be created
+	    '''
+
+	    found_start = False
+	    start_read = False
+	    buffer = ""
+	    
+	    line = self.ping_cmd(host)
+	    if line == False:
+	        return "None"
+	        
+	    for letter in line:
+	        if not found_start:
+	            
+	            if len(buffer) == 7:
+	                buffer = buffer[1:] + str(letter)
+	            else:
+	                buffer += str(letter)
+	            if buffer == "Average":
+	                found_start = True
+	                buffer = ""
+	        else:
+	            if not start_read:
+	                if len(buffer) == 2:
+	                    buffer = buffer[1:] + letter
+	                    if buffer == "= ":
+	                        start_read = True
+	                        buffer = ""
+	                else:
+	                    buffer += str(letter)
+	            else:
+	                    buffer += str(letter)
+	    return buffer.strip("\r")
+
 	def Web_Title (self, server):
 		# Check if the http port and https port is open on the server, attempt to get title for open addresses
 
@@ -289,11 +355,15 @@ class Scanner_Thread:
 	# Main Scan functions
 
 	def Scan(self, server, port):
+		self.socket = socket(AF_INET, SOCK_STREAM)
 		try:
 			self.socket.connect((server, port))
+			self.socket.close()
 			return True
 		except:
+			self.socket.close()
 			return False
+
 
 	def Start_Scanning (self):
 		self.thread = Thread(target=self.Run_Thread)
@@ -330,21 +400,37 @@ class Scanner_Thread:
 			if "web_title" in self.controller.Scan_Opts: # Do we scan the web title?
 				title = self.Web_Title(server)
 
-			results["web_title"] = title
+				results["web_title"] = title
 
+			# Hostname
+
+			if "hostname" in self.controller.Scan_Opts:
+				hostname = self.Hostname(server)
+
+				results["hostname"] = hostname
+
+			# Ping
+
+			if "ping" in self.controller.Scan_Opts:
+				ping = self.Ping_w(server)
+
+				results["ping"] = ping
+
+
+			# Output
 			self.controller.Print_If_Verbose("high", "[+] Scanning on %s has stopped." % server)
-
 			self.controller.Results[server] = results
-
 			self.controller.New_Data.put([server, results])
 
+			# Finish Up
 			self.controller.que.task_done()
+
 		self.controller.Print_If_Verbose("high", "[+] Thread Destroyed")
 
 if __name__ == "__main__":
-	Scanner = Scan_Handler(ports=[80, 443, 8000, 8080], threads=100, verbose=True, verbosity="high", write_results=True)
-	Scanner.Start_Scanner("80.4.150.1", "80.4.200.0")
+	Scanner = Scan_Handler(ports=[80, 443, 8000, 8080], threads=100, verbose=False, verbosity="high", write_results=True)
+	Scanner.Start_Scanner("80.4.150.1", "80.4.160.0")
 	for i in Scanner.Get_Outputs_Realtime():
-		if str(i[1]["ports"]) != "[]" or i[1]["web_title"] != "None":
+		if str(i[1]["ports"]) != "[]" or i[1]["web_title"] != "None" or i[1]["ping"]!= "None":
 			print(i)
 	#print(Scanner.Open_Addresses)
