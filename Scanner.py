@@ -13,7 +13,7 @@ import subprocess
 printLock = Lock()
 
 class Scan_Handler:
-	def __init__ (self, ports=[80], threads=10, verbose=False, verbosity="low", write_results=False, scan_opts = ["ping", "web_title", "hostname"]):
+	def __init__ (self, ports=[80], threads=10, verbose=False, verbosity="low", write_results=False, scan_opts = ["status", "ping", "web_title", "hostname"]):
 		# Verbosity Settings
 		self.Verbose 		= verbose
 		self.Verbosity 		= verbosity 	# Can be low, Medium, High
@@ -62,10 +62,10 @@ class Scan_Handler:
 			with open(filename, "a") as output:
 				for server in self.Results: # Loops through all the results
 
-					output.write(str(server) + ":")
+					output.writeline(str(server) + ":")
 
 					for key in self.Results[server]:
-						output.write("\t\t" + key + "  :  " + str(self.Results[server][key]))
+						output.writeline("\t\t" + key + "  :  " + str(self.Results[server][key]))
 
 					
 
@@ -240,13 +240,15 @@ class Scanner_Thread:
 
 	# Extra Scan Functions
 
+
 	def Hostname (self, server):
 		try:
-			hn, x, x = getfqdn(server)
-		except:
+			hn = getfqdn(server)
+		except Exception as e:
 			hn = "None"
 
 		return hn
+
 
 	def ping_cmd (self, host):
 	    breaklim = 10
@@ -265,6 +267,12 @@ class Scanner_Thread:
 	                return line
 	    return False
 
+	def Is_Alive (self, server):
+		if self.ping_cmd(server) == False:
+			return False
+		else:
+			return True
+		
 	def Ping_w (self, host):
 	    '''
 	    Use subrpocess to ping through the console,
@@ -385,6 +393,12 @@ class Scanner_Thread:
 			self.controller.Print_If_Verbose("high", "[+] Scanning on %s has started." % server)
 			
 			results  = {}
+
+			# Status
+			if "status" in self.controller.Scan_Opts:
+				status = self.Is_Alive(server)
+
+				results["status"] = status 
 
 			# Ports 
 			for port in self.controller.Ports:
