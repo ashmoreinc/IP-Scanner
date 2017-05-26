@@ -447,4 +447,3 @@ if __name__ == "__main__":
 	for i in Scanner.Get_Outputs_Realtime():
 		if str(i[1]["ports"]) != "[]" or i[1]["web_title"] != "None" or i[1]["ping"]!= "None":
 			print(i)
-	#print(Scanner.Open_Addresses)
