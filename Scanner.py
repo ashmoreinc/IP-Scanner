@@ -162,6 +162,23 @@ class Scan_Handler:
 				self.Print_If_Verbose("low", "[!] Threads must be an integer!")
 		return False
 
+	def Add_Option (self, option):
+		self.Scan_Opts.append(option)
+		return True
+
+	def Remove_Option (self, option):
+		if option in self.Scan_Opts:
+			self.Scan_Opts.remove(option)
+			return True
+		return False
+
+	def Set_Options (self, options)
+		if type(options) == list:
+			self.Scan_Opts = options
+			return True
+
+		return False
+
 	# Scanning
 
 	def Stop_Scanning (self):
