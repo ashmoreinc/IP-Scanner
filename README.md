@@ -7,6 +7,8 @@ IP.py: A module which holds a new data type (IPV4) to store IPV4 addresses, allo
 
 Scanner.py: A module which holds an object in which will control all of the running of the Scanner.
 
+External Modules Requried: bs4 (Beautiful Soup 4), urllib
+
 How to use:
 Create the Scan handler: 	Scanner = Scan_Handler(**kwargs)
 							**kwargs can be:
