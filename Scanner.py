@@ -50,7 +50,6 @@ class Scan_Handler:
 			yield data
 			self.New_Data.task_done()
 			
-			
 
 	# Output the results if set to do so
 	def Write_Results (self):
@@ -172,7 +171,7 @@ class Scan_Handler:
 			return True
 		return False
 
-	def Set_Options (self, options)
+	def Set_Options (self, options):
 		if type(options) == list:
 			self.Scan_Opts = options
 			return True
