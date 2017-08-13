@@ -83,6 +83,32 @@ class IPV4:
 		self.Current_IP = output
 		return True
 
+	def Prev_IP (self):
+		output = self.Current_IP
+
+		# Check last position
+		if output[3] > 0:
+			output[3] -= 1
+		else:
+			output[3] = 255
+			# Check penultimuate position
+			if output[2] > 0:
+				output[2] -= 1
+			else:
+				output[2] = 255
+				# Check 2nd position
+				if output[1] > 0:
+					output[1] -= 1
+				else:
+					output[1] = 255
+					# Check 1st position
+					if output[0] > 0:
+						output[0] -= 1
+					else:
+						return False
+		self.Current_IP = output
+		return True
+
 	# Data Operations
 
 	def __str__(self):
